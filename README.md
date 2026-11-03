@@ -157,6 +157,15 @@ equivalent_modules = My::Kit
 
 ### violates
 
+# BUGS
+
+Please report any bugs or feature requests on the bugtracker website
+[https://github.com/teodesian/perl-critic-policy-requirenoautovivification/issues](https://github.com/teodesian/perl-critic-policy-requirenoautovivification/issues)
+
+When submitting a bug or request, please include a test-file or a
+patch to an existing test-file that illustrates the bug or desired
+feature.
+
 # AUTHORS
 
 Current Maintainers:
