@@ -27,6 +27,7 @@ autodetected
 autodetecting
 autodetects
 autogen
+autovivification
 backend
 backends
 BackPAN
@@ -70,6 +71,8 @@ deduplicates
 deduplicating
 dep
 deps
+dereference
+dereferences
 dev
 DHCP
 dir
@@ -157,11 +160,13 @@ passwordless
 PCI
 PCIe
 PEM
+perl
 perlcritic
 perltidy
 PKI
 plaintext
 POSIX
+pragma
 pragmas
 preflight
 proxied

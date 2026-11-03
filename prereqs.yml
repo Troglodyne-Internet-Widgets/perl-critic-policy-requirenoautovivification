@@ -4,3 +4,7 @@
 runtime:
   requires:
     perl: '5.014'
+  # The policy does not load it.  The code that the policy judges does, once it
+  # says "no autovivification", so whoever installs this will want it too.
+  recommends:
+    autovivification: '0.18'
