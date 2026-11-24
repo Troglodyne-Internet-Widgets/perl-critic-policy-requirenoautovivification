@@ -221,10 +221,19 @@ sub violates {
 
     # A read inside a cast is part of the expression that the cast is, so only
     # the cast is reported when both are.
-    my %blocks = map { refaddr($_) => 1 } grep { $_->isa('PPI::Structure::Block') } map { @{ $_->{pieces} } } @hazards;
+    my %blocks;
+    foreach my $hazard (@hazards) {
+        foreach my $piece ( @{ $hazard->{pieces} } ) {
+            $blocks{ refaddr($piece) } = 1 if $piece->isa(q{PPI::Structure::Block});
+        }
+    }
     @hazards = grep { !_is_inside( $_->{pieces}[0], \%blocks ) } @hazards;
 
-    return map { $self->violation( $DESC, $EXPL{ $_->{category} }, $_->{pieces}[0] ) } @hazards;
+    my @violations;
+    foreach my $hazard (@hazards) {
+        push @violations, $self->violation( $DESC, $EXPL{ $hazard->{category} }, $hazard->{pieces}[0] );
+    }
+    return @violations;
 }
 
 # Every term in $doc: the pieces of one variable, cast or call, and the
@@ -517,15 +526,27 @@ sub _argument_words {
 sub _flatten {
     my ($elem) = @_;
 
-    return $elem unless $elem->isa('PPI::Structure::List');
-    return map { _flatten($_) } map { $_->schildren } $elem->schildren;
+    my @todo = ($elem);
+    my @flat;
+    while ( my $next = shift @todo ) {
+        if ( !$next->isa('PPI::Structure::List') ) {
+            push @flat, $next;
+            next;
+        }
+        my @inside;
+        foreach my $statement ( $next->schildren ) {
+            push @inside, $statement->schildren;
+        }
+        unshift @todo, @inside;
+    }
+    return @flat;
 }
 
 # Whether the pragmas in scope at $hazard turn on the category it needs.
 sub _is_covered {
     my ( $hazard, $pragmas ) = @_;
 
-    my $at = $hazard->{pieces}[0];
+    my ($at) = @{ $hazard->{pieces} };
     my %on;
     foreach my $pragma ( grep { _is_in_scope( $_->{statement}, $at ) } @$pragmas ) {
         foreach my $category ( @{ $pragma->{categories} } ) {
@@ -541,8 +562,9 @@ sub _is_covered {
 sub _is_in_scope {
     my ( $statement, $elem ) = @_;
 
-    my $scope = refaddr( $statement->parent );
-    return unless any { refaddr($_) == $scope } _ancestors($elem);
+    my $scope    = refaddr( $statement->parent );
+    my %ancestor = map { $_ => 1 } _ancestor_addresses($elem);
+    return unless $ancestor{$scope};
 
     my ( $statement_line, $statement_column ) = @{ $statement->location }[ 0, 1 ];
     my ( $line,           $column )           = @{ $elem->location }[ 0, 1 ];
@@ -553,15 +575,15 @@ sub _is_in_scope {
 sub _is_inside {
     my ( $elem, $blocks ) = @_;
 
-    return any { $blocks->{ refaddr($_) } } _ancestors($elem);
+    return any { $blocks->{$_} } _ancestor_addresses($elem);
 }
 
-sub _ancestors {
+sub _ancestor_addresses {
     my ($elem) = @_;
 
     my @ancestors;
     for ( my $parent = $elem->parent; $parent; $parent = $parent->parent ) {
-        push @ancestors, $parent;
+        push @ancestors, refaddr($parent);
     }
     return @ancestors;
 }
